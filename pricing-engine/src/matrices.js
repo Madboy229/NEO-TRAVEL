@@ -47,6 +47,14 @@ export const TARIFS_OPTIONS = {
 export const TVA_RATE = 0.10;
 export const MARGE_COMMERCIALE = 0.15;
 
-// Prix de base par km — A CONFIRMER avec les "Regles de pricing Neotravel" completes.
-// Valeur de travail pour le prototype : 2.50 EUR / km pour un autocar standard.
+// Prix de base par km — Hypothese projet (cf. docs/hypotheses-pricing.md).
+// 2.50 EUR/km : tarif marche autocaristes France 2024-2026 pour autocar 50+ places.
 export const PRIX_PAR_KM = 2.50;
+
+// Prix minimum d'une prestation — couvre la mobilisation d'un autocar et d'un chauffeur
+// sur une demi-journee. Evite les devis "ridicules" pour des trajets tres courts.
+export const PRIX_MINIMUM = 350;
+
+// Taux automatique de calcul des peages autoroute (option peages_inclus sans forfait
+// explicite). ~6 cts/km : moyenne reseau autoroutier francais pour autocar.
+export const PEAGES_PAR_KM = 0.06;

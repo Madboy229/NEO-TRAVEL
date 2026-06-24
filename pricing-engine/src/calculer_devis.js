@@ -32,6 +32,8 @@ import {
   TVA_RATE,
   MARGE_COMMERCIALE,
   PRIX_PAR_KM,
+  PRIX_MINIMUM,
+  PEAGES_PAR_KM,
 } from "./matrices.js";
 
 function coefficientSaison(dateDepart) {
@@ -129,16 +131,26 @@ export function calculerDevis(payload) {
     totalOptions += montant;
   }
   if (options.includes("peages_inclus")) {
-    const forfait = payload.peages_forfait ?? 0;
-    optionsAppliquees.push({ option: "peages_inclus", montant: forfait });
+    // Si pas de forfait explicite, calcul auto : distance * PEAGES_PAR_KM
+    const forfait = payload.peages_forfait ?? (payload.distance_km * PEAGES_PAR_KM);
+    const calculAuto = payload.peages_forfait === undefined;
+    optionsAppliquees.push({
+      option: "peages_inclus",
+      montant: arrondi2(forfait),
+      calcul_automatique: calculAuto,
+    });
     totalOptions += forfait;
   }
 
   // 5. Marge commerciale appliquee au devis avant TVA
   const sousTotalHT = prixApresCoefs + totalOptions;
-  const totalHT = sousTotalHT * (1 + MARGE_COMMERCIALE);
+  const totalAvantMin = sousTotalHT * (1 + MARGE_COMMERCIALE);
 
-  // 6. TVA et TTC
+  // 6. Prix minimum : un devis ne peut pas etre inferieur au cout de mobilisation
+  const prixMinimumApplique = totalAvantMin < PRIX_MINIMUM;
+  const totalHT = prixMinimumApplique ? PRIX_MINIMUM : totalAvantMin;
+
+  // 7. TVA et TTC
   const tva = totalHT * TVA_RATE;
   const totalTTC = totalHT + tva;
 
@@ -160,6 +172,9 @@ export function calculerDevis(payload) {
       total_options: arrondi2(totalOptions),
       sous_total_HT: arrondi2(sousTotalHT),
       marge_commerciale: MARGE_COMMERCIALE,
+      total_avant_minimum: arrondi2(totalAvantMin),
+      prix_minimum_applique: prixMinimumApplique,
+      prix_minimum: PRIX_MINIMUM,
       taux_tva: TVA_RATE,
     },
   };

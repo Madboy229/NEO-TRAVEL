@@ -180,6 +180,18 @@ test("Option peages : forfait paramétrable", () => {
   }));
   const optPeages = devis.details.options_appliquees.find(o => o.option === "peages_inclus");
   assert.equal(optPeages.montant, 75);
+  assert.equal(optPeages.calcul_automatique, false);
+});
+
+test("Option peages : calcul automatique si pas de forfait fourni (0.06 EUR/km)", () => {
+  const devis = calculerDevis(basePayload({
+    distance_km: 200,
+    options: ["peages_inclus"],
+    // peages_forfait absent volontairement
+  }));
+  const optPeages = devis.details.options_appliquees.find(o => o.option === "peages_inclus");
+  assert.equal(optPeages.montant, 12);  // 200 * 0.06
+  assert.equal(optPeages.calcul_automatique, true);
 });
 
 test("Combinaison de plusieurs options", () => {
@@ -194,24 +206,40 @@ test("Combinaison de plusieurs options", () => {
 });
 
 // ============================================================
-// 6. Marge commerciale et TVA
+// 6. Marge commerciale, TVA et prix minimum
 // ============================================================
 test("Marge commerciale +15% appliquee avant TVA", () => {
   const devis = calculerDevis(basePayload({
     nb_passagers: 30,
     date_depart: "2026-09-10T08:00:00Z",   // saison moyenne (0%)
     date_demande: "2026-06-23T12:00:00Z",  // ~79j -> DD_NORMAL (-5%)
-    distance_km: 100,
+    distance_km: 500,                       // assez long pour passer au-dessus du minimum
     options: [],
   }));
-  // prix_base = 2.50 * 100 = 250
-  // apres coefs = 250 * 1.0 * 0.95 * 1.0 = 237.50
-  // marge +15% = 237.50 * 1.15 = 273.125
-  // TVA 10% = 27.3125
-  assert.equal(devis.details.sous_total_HT, 237.5);
-  assert.equal(devis.total_HT, 273.13);
-  assert.equal(devis.tva, 27.31);
-  assert.equal(devis.total_TTC, 300.44);
+  // prix_base = 2.50 * 500 = 1250
+  // apres coefs = 1250 * 1.0 * 0.95 * 1.0 = 1187.50
+  // marge +15% = 1187.50 * 1.15 = 1365.625
+  // TVA 10% = 136.5625
+  assert.equal(devis.details.sous_total_HT, 1187.5);
+  assert.equal(devis.total_HT, 1365.63);
+  assert.equal(devis.details.prix_minimum_applique, false);
+  assert.equal(devis.tva, 136.56);
+  assert.equal(devis.total_TTC, 1502.19);
+});
+
+test("Prix minimum 350 EUR applique sur tres petit trajet", () => {
+  const devis = calculerDevis(basePayload({
+    nb_passagers: 10,                       // -5%
+    date_depart: "2026-09-10T08:00:00Z",   // saison moyenne 0%
+    date_demande: "2026-06-23T12:00:00Z",  // -5% (DD_NORMAL)
+    distance_km: 50,                        // 2.50 * 50 = 125
+    options: [],
+  }));
+  // prix calcule ~ 125 * 0.95 * 0.95 * 1.15 = 129.74 EUR (sous le minimum)
+  assert.equal(devis.details.prix_minimum_applique, true);
+  assert.equal(devis.total_HT, 350);
+  assert.equal(devis.tva, 35);
+  assert.equal(devis.total_TTC, 385);
 });
 
 // ============================================================
