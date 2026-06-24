@@ -1,0 +1,14 @@
+{
+  "name": "neotravel-pricing-engine",
+  "version": "0.1.0",
+  "description": "Moteur de tarification deterministe Neotravel — calcule un devis a partir des matrices documentees, sans jamais passer par le LLM.",
+  "type": "module",
+  "main": "src/calculer_devis.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "demo": "node src/demo.js"
+  },
+  "keywords": ["neotravel", "pricing", "deterministic", "rpa"],
+  "author": "Khadija Darkaoui",
+  "license": "UNLICENSED"
+}
