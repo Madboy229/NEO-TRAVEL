@@ -24,7 +24,7 @@
  * NE JAMAIS calculer un prix toi-meme — toujours passer par cet outil.
  *
  * --------------------------------------------------------------------------
- * INPUT_SCHEMA (a coller dans le champ "Input Schema" — format JSON Schema) :
+ * INPUT_SCHEMA :
  *
  * {
  *   "type": "object",
@@ -45,7 +45,7 @@
  *   "required": ["nb_passagers", "date_depart", "distance_km"]
  * }
  * ==========================================================================
- * CODE A COPIER DANS LE CHAMP "JavaScript Code" DU TOOL N8N :
+
  * ==========================================================================
  */
 

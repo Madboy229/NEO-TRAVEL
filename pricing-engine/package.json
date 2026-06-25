@@ -6,7 +6,8 @@
   "main": "src/calculer_devis.js",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "demo": "node src/demo.js"
+    "demo": "node src/demo.js",
+    "test:airtable": "node --env-file=../.env scripts/test-airtable.js"
   },
   "keywords": ["neotravel", "pricing", "deterministic", "rpa"],
   "author": "Khadija Darkaoui",
