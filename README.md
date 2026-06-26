@@ -12,7 +12,7 @@ automatisés, séquences emailing et dashboard de pilotage.
 |---|---|
 | Frontend (landing conversationnelle) | React + Vite |
 | Orchestrateur / Agent IA | n8n (Cloud) |
-| LLM | Google Gemini 2.0 Flash |
+| LLM | OpenAI GPT-4o-mini via Vercel AI Gateway (clé école `vck_*`) |
 | Base CRM | Airtable (4 tables) |
 | Envoi emails | Resend |
 | Moteur de tarification | Node.js pur (code déterministe) |
