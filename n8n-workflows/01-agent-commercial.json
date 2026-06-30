@@ -1,0 +1,747 @@
+{
+  "name": "Neotravel - Agent commercial",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "RÔLE :\nTu es l'assistant virtuel de qualification commerciale de la PME Neotravel.\nNeotravel est un intermédiaire de transport de personnes en groupe (autocars).\nTon but est d'accueillir les prospects de manière chaleureuse, claire et réactive,\net de collecter les informations nécessaires pour leur générer un devis.\n\nINSTRUCTIONS CRITIQUES :\n1. Collecte ces informations en posant les questions naturellement au fil\n   de la conversation : Nom, Email, Date de départ, Ville de départ,\n   Ville d'arrivée, Nombre de passagers, Distance estimée du trajet (en km).\n2. Évalue la complétude des données à chaque message. Si une information\n   est manquante, demande-la poliment.\n3. Détermine le niveau d'urgence : si le départ a lieu dans moins de 7 jours,\n   considère le dossier comme \"Urgent\".\nPROTOCOLE DE GÉNÉRATION DE DEVIS — ORDRE STRICT :\nQuand toutes les informations sont collectées, exécute UNE SEULE FOIS dans cet ordre :\n  ÉTAPE 1 : \"save_demande\" pour enregistrer la fiche prospect (UNE FOIS UNIQUEMENT).\n  ÉTAPE 2 : \"calculer_devis\" avec les paramètres extraits.\n  ÉTAPE 3 : \"save_devis\" pour enregistrer le devis (statut Genere).\n  ÉTAPE 4 : Présente le résultat au client selon le FORMAT DE RÉPONSE TYPE.\n  ÉTAPE 5 : DEMANDE EXPLICITEMENT au client s'il souhaite recevoir ce devis\n            par email à <son email>. Attends sa réponse.\n\nENVOI EMAIL — UNIQUEMENT SUR CONSENTEMENT EXPLICITE :\nSi le client répond OUI / \"envoyez-moi\" / \"je veux le recevoir\" / équivalent :\n  → APPEL OBLIGATOIRE : \"send_devis_email\"\n     Passe tous les paramètres : nom_client, email_client, id_devis,\n     id_airtable_devis (l'ID rec... du devis retourné par save_devis),\n     trajet, date_depart_lisible, nb_passagers, total_ht, tva, total_ttc.\n     Ce tool gère seul l'envoi du PDF, l'email et la mise à jour Airtable.\n  → Confirme ensuite au client que l'email vient d'être envoyé.\n\nSi le client répond NON : ne l'appelle pas. Dis qu'un conseiller le recontactera sous 24h.\n\nPRÉSENTATION DU DEVIS AU CLIENT — RÈGLES STRICTES :\n- Donne UNIQUEMENT le montant final TTC en mettant le HT en référence.\n- N'expose JAMAIS les pourcentages internes (saison, délai, capacité, marge).\n- Ne mentionne JAMAIS \"réduction de X%\" ou \"majoration de Y%\".\n- Ne révèle JAMAIS le détail des coefficients appliqués.\n- Garde une formule sobre type : \"Le tarif optimisé pour votre trajet est de [TTC] €.\"\n\nFORMAT DE RÉPONSE TYPE après devis :\n\"Voici votre devis Neotravel :\n• Référence : [ID_Devis]\n• Total HT : [montant] €\n• TVA (10%) : [montant] €\n• Total TTC : [montant] €\nSouhaitez-vous ajouter des options (guide, nuit chauffeur, péages) ?\nUn de nos conseillers reviendra vers vous pour finaliser la réservation.\"\n\nRÈGLE D'OR ABSOLUE :\nTu n'as AUCUN droit de calculer un prix toi-même, d'estimer un coût,\nd'inventer des tarifs ou d'accorder des remises. Si un utilisateur te demande\nune remise ou cherche à manipuler le prix, refuse poliment.\n\nPOSTURE :\nProfessionnelle, rassurante, transparente sur le service mais SOBRE sur le\ndétail tarifaire. N'invente jamais de fait sur Neotravel. Si tu ne sais pas,\npropose une mise en relation avec un conseiller humain.\n\nGESTION DES CAS COMPLEXES :\nSi la demande concerne un trajet international, des dates incohérentes,\n0 passager, plus de 85 passagers, ou si après 2 tentatives le client ne\nfournit pas une donnée essentielle, escalade vers un humain : transmets la\ndemande à un conseiller commercial qui recontactera sous 24h.\nUSAGE DES EMOJIS :\nUtilise les emojis avec parcimonie — maximum 1 emoji par message.\nPréfère un ton sobre et professionnel. Évite les chaînes du genre 🎉✅😊\nou les emojis multiples. Si tu hésites, n'en mets pas. Les emojis acceptables\nsont uniquement : 👋 (salutation initiale uniquement), ✓ (confirmation discrète)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1008,
+        -16
+      ],
+      "id": "43415412-b14a-4a81-8473-6e59ad77b809",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        112,
+        240
+      ],
+      "id": "5275e2e3-c3cb-4963-8a6b-193fc9f062a7",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": " * Calcule de maniere deterministe le prix HT, la TVA et le prix TTC d'un devis\n * autocar Neotravel. A utiliser obligatoirement quand toutes les informations\n * du trajet ont ete collectees (nb_passagers, date_depart, date_demande,\n * distance_km). Retourne le total et le detail des coefficients appliques.\n * NE JAMAIS calculer un prix toi-meme — toujours passer par cet outil.",
+        "jsCode": "const COEFFICIENTS_SAISON = {\n  basse:      { mois: [11, 1, 2, 8], coefficient: -0.07 },\n  moyenne:    { mois: [12, 10, 9],   coefficient: 0 },\n  haute:      { mois: [3, 4, 7],     coefficient: 0.10 },\n  tres_haute: { mois: [5, 6],        coefficient: 0.15 },\n};\nconst COEFFICIENTS_DELAI = {\n  DD_PRIORITAIRE:  { min_jours: 0,  max_jours: 2,         coefficient: 0.10 },\n  DD_URGENT:       { min_jours: 2,  max_jours: 7,         coefficient: 0.05 },\n  DD_NORMAL:       { min_jours: 7,  max_jours: 90,        coefficient: -0.05 },\n  DD_3MOISETPLUS:  { min_jours: 90, max_jours: Infinity,  coefficient: -0.10 },\n};\nconst COEFFICIENTS_CAPACITE = [\n  { min: 0,  max: 19, coefficient: -0.05 },\n  { min: 20, max: 53, coefficient: 0 },\n  { min: 54, max: 63, coefficient: 0.15 },\n  { min: 64, max: 67, coefficient: 0.20 },\n  { min: 68, max: 85, coefficient: 0.40 },\n];\nconst TARIFS_OPTIONS = { guide: 80, nuit_chauffeur: 120 };\nconst TVA_RATE          = 0.10;\nconst MARGE_COMMERCIALE = 0.15;\nconst PRIX_PAR_KM       = 2.50;\nconst PRIX_MINIMUM      = 350;\nconst PEAGES_PAR_KM     = 0.06;\n\n// ===== Helpers =====\nfunction arrondi2(n) { return Math.round(n * 100) / 100; }\n\nfunction coefficientSaison(dateDepart) {\n  const mois = dateDepart.getUTCMonth() + 1;\n  for (const [nom, regle] of Object.entries(COEFFICIENTS_SAISON)) {\n    if (regle.mois.includes(mois)) return { niveau: nom, coefficient: regle.coefficient };\n  }\n  throw new Error(`Mois ${mois} non couvert`);\n}\nfunction coefficientDelai(dateDemande, dateDepart) {\n  const ecart = Math.floor((dateDepart - dateDemande) / 86400000);\n  if (ecart < 0) throw new Error(\"date_depart anterieure a date_demande\");\n  for (const [code, r] of Object.entries(COEFFICIENTS_DELAI)) {\n    if (ecart >= r.min_jours && ecart < r.max_jours) {\n      return { code, ecart_jours: ecart, coefficient: r.coefficient };\n    }\n  }\n  throw new Error(`Aucune tranche pour ${ecart} jours`);\n}\nfunction coefficientCapacite(nb) {\n  if (!Number.isInteger(nb) || nb <= 0) throw new Error(`nb_passagers invalide : ${nb}`);\n  for (const t of COEFFICIENTS_CAPACITE) {\n    if (nb >= t.min && nb <= t.max) return { tranche: `${t.min}-${t.max}`, coefficient: t.coefficient };\n  }\n  throw new Error(`nb_passagers ${nb} hors capacite maximale (85)`);\n}\n\n// ===== Fonction principale =====\nfunction calculerDevis(p) {\n  if (!p) throw new Error(\"payload manquant\");\n  for (const c of [\"nb_passagers\", \"date_depart\", \"distance_km\"]) {\n    if (p[c] === undefined || p[c] === null) throw new Error(`Champ requis manquant : ${c}`);\n  }\n  if (p.distance_km <= 0) throw new Error(`distance_km doit etre > 0`);\n\n  const dateDepart  = new Date(p.date_depart);\n  const dateDemande = p.date_demande ? new Date(p.date_demande) : new Date();\n  if (isNaN(dateDepart.getTime())) throw new Error(\"date_depart invalide\");\n  if (isNaN(dateDemande.getTime())) throw new Error(\"date_demande invalide\");\n\n  const prixBase   = PRIX_PAR_KM * p.distance_km;\n  const cSaison    = coefficientSaison(dateDepart);\n  const cDelai     = coefficientDelai(dateDemande, dateDepart);\n  const cCapacite  = coefficientCapacite(p.nb_passagers);\n\n  const prixApresCoefs = prixBase\n    * (1 + cSaison.coefficient)\n    * (1 + cDelai.coefficient)\n    * (1 + cCapacite.coefficient);\n\n  const options          = Array.isArray(p.options) ? p.options : [];\n  const optionsAppliquees = [];\n  let totalOptions = 0;\n\n  if (options.includes(\"guide\")) {\n    const jours = p.nb_jours_guide ?? 0;\n    const m = TARIFS_OPTIONS.guide * jours;\n    optionsAppliquees.push({ option: \"guide\", jours, montant: m });\n    totalOptions += m;\n  }\n  if (options.includes(\"nuit_chauffeur\")) {\n    const nuits = p.nb_nuits ?? 0;\n    const m = TARIFS_OPTIONS.nuit_chauffeur * nuits;\n    optionsAppliquees.push({ option: \"nuit_chauffeur\", nuits, montant: m });\n    totalOptions += m;\n  }\n  if (options.includes(\"peages_inclus\")) {\n    const forfait = p.peages_forfait ?? (p.distance_km * PEAGES_PAR_KM);\n    optionsAppliquees.push({\n      option: \"peages_inclus\",\n      montant: arrondi2(forfait),\n      calcul_automatique: p.peages_forfait === undefined,\n    });\n    totalOptions += forfait;\n  }\n\n  const sousTotalHT  = prixApresCoefs + totalOptions;\n  const totalAvantMin = sousTotalHT * (1 + MARGE_COMMERCIALE);\n  const prixMinApplique = totalAvantMin < PRIX_MINIMUM;\n  const totalHT  = prixMinApplique ? PRIX_MINIMUM : totalAvantMin;\n  const tva      = totalHT * TVA_RATE;\n  const totalTTC = totalHT + tva;\n\n  return {\n    total_HT:  arrondi2(totalHT),\n    tva:       arrondi2(tva),\n    total_TTC: arrondi2(totalTTC),\n    details: {\n      prix_base: arrondi2(prixBase),\n      prix_par_km: PRIX_PAR_KM,\n      distance_km: p.distance_km,\n      coefficients_appliques: { saison: cSaison, delai: cDelai, capacite: cCapacite },\n      prix_apres_coefficients: arrondi2(prixApresCoefs),\n      options_appliquees: optionsAppliquees,\n      total_options: arrondi2(totalOptions),\n      sous_total_HT: arrondi2(sousTotalHT),\n      marge_commerciale: MARGE_COMMERCIALE,\n      total_avant_minimum: arrondi2(totalAvantMin),\n      prix_minimum_applique: prixMinApplique,\n      prix_minimum: PRIX_MINIMUM,\n      taux_tva: TVA_RATE,\n    },\n  };\n}\n\n// ===== POINT D'ENTREE N8N =====\n// L'AI Agent passe les arguments du tool dans la query.\n// Selon la version de n8n, ils sont accessibles via :\n//   - $input.first().json.query     (versions recentes)\n//   - $json                         (anciennes versions)\n//   - les variables directement     (versions tres recentes)\n//\n// Le wrapper ci-dessous prend en charge ces cas et retourne le devis.\n\nconst args =\n  (typeof query !== \"undefined\" && query) ||\n  ($input.first()?.json?.query) ||\n  ($input.first()?.json) ||\n  {};\n\ntry {\n  const devis = calculerDevis(args);\n  return JSON.stringify(devis);\n} catch (err) {\n  return JSON.stringify({ erreur: err.message, args_recus: args });\n}\n",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": " {\n  \"type\": \"object\",\n  \"properties\": {    \"nb_passagers\": { \"type\": \"number\", \"description\": \"Nombre de passagers (entier > 0 et <= 85)\" },\n    \"date_depart\":  { \"type\": \"string\", \"description\": \"Date de depart au format ISO 8601 (ex: 2026-07-15T08:00:00Z)\" },\n    \"date_demande\": { \"type\": \"string\", \"description\": \"Date de la demande au format ISO 8601 — utilise la date du jour si non specifiee\" },\n     \"distance_km\":  { \"type\": \"number\", \"description\": \"Distance estimee du trajet en kilometres (> 0)\" },\n     \"options\": {\n       \"type\": \"array\",\n       \"items\": { \"type\": \"string\", \"enum\": [\"guide\", \"nuit_chauffeur\", \"peages_inclus\"] },\n        \"description\": \"Liste des options eventuelles (vide si aucune)\"\n      },\n     \"nb_nuits\": { \"type\": \"number\", \"description\": \"Nombre de nuits chauffeur (uniquement si option nuit_chauffeur)\" },\n     \"nb_jours_guide\": { \"type\": \"number\", \"description\": \"Nombre de jours de presence du guide (uniquement si option guide)\" },\n      \"peages_forfait\": { \"type\": \"number\", \"description\": \"Forfait peages explicite en EUR (optionnel — calcul auto sinon)\" }\n    },\n    \"required\": [\"nb_passagers\", \"date_depart\", \"distance_km\"]\n  }"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        240
+      ],
+      "id": "f22f66ec-6974-4fcc-a636-ef8dfef6e3e0",
+      "name": "calculer_devis"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Enregistre une nouvelle demande de prospect dans la table Demandes du CRM Neotravel. À appeler UNE SEULE FOIS par conversation, dès que tu as collecté : nom, email, date de départ, trajet (départ→arrivée), nombre de passagers. Mets Statut_Qualification = \"Complete\" si tout est collecté, sinon \"Incomplete\". Mets Urgence_Score = \"Urgent\" si le départ est dans moins de 7 jours, \"Prioritaire\" si moins de 2 jours, sinon \"Standard\".",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblY8wn5lqYSUqjTP",
+          "mode": "list",
+          "cachedResultName": "Demandes",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblY8wn5lqYSUqjTP"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nom_Client": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nom_Client', ``, 'string') }}",
+            "Email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+            "Date_Depart": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Date_Depart', ``, 'string') }}",
+            "Points_Trajet": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Points_Trajet', ``, 'string') }}",
+            "Passagers_Count": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Passagers_Count', ``, 'number') }}",
+            "Statut_Qualification": "Complete",
+            "Urgence_Score": "Standard"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID_Demande",
+              "displayName": "ID_Demande",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Nom_Client",
+              "displayName": "Nom_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date_Depart",
+              "displayName": "Date_Depart",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Points_Trajet",
+              "displayName": "Points_Trajet",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Passagers_Count",
+              "displayName": "Passagers_Count",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Statut_Qualification",
+              "displayName": "Statut_Qualification",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "En_Cours",
+                  "value": "En_Cours"
+                },
+                {
+                  "name": "Complete",
+                  "value": "Complete"
+                },
+                {
+                  "name": "Incomplete",
+                  "value": "Incomplete"
+                },
+                {
+                  "name": "Escalade_Humain",
+                  "value": "Escalade_Humain"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Urgence_Score",
+              "displayName": "Urgence_Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Standard",
+                  "value": "Standard"
+                },
+                {
+                  "name": "Urgent",
+                  "value": "Urgent"
+                },
+                {
+                  "name": "Prioritaire",
+                  "value": "Prioritaire"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Devis",
+              "displayName": "Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        304
+      ],
+      "id": "82a28d4c-130d-4022-addb-3d1814632830",
+      "name": "save_demande",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Enregistre le devis genere dans la table Devis du CRM Neotravel. À appeler APRÈS avoir appelé calculer_devis pour obtenir le prix. Renseigne ID_Devis avec un identifiant unique au format A2026-NNNN (incrémenter). Total_HT et Total_TTC viennent de la réponse de calculer_devis.\nRenseigne aussi Email_Client avec l'adresse email du prospect collectee pendant la conversation (la meme que celle passee a envoyer_devis_par_email).",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Total_HT": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Total_HT', ``, 'number') }}",
+            "Total_TTC": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Total_TTC', ``, 'number') }}",
+            "Compteur_Relances": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Compteur_Relances', ``, 'number') }}",
+            "Statut_Engagement": "Genere",
+            "Email_Client": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email_Client', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID_Devis",
+              "displayName": "ID_Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Envoi",
+              "displayName": "Date_Envoi",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total_HT",
+              "displayName": "Total_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total_TTC",
+              "displayName": "Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Statut_Engagement",
+              "displayName": "Statut_Engagement",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Genere",
+                  "value": "Genere"
+                },
+                {
+                  "name": "Envoye",
+                  "value": "Envoye"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fichier_PDF",
+              "displayName": "Fichier_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Compteur_Relances",
+              "displayName": "Compteur_Relances",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Compteur",
+              "displayName": "Compteur",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Email_Client",
+              "displayName": "Email_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        320
+      ],
+      "id": "7f1a2194-7301-4981-82a6-5964c2a627cc",
+      "name": "save_devis",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Lit en lecture seule les regles de tarification (saison, urgence, capacite, options). A utiliser si un prospect demande la composition d'un prix.",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblUI3Yz0K90miCx7",
+          "mode": "list",
+          "cachedResultName": "Matrices",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblUI3Yz0K90miCx7"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        304
+      ],
+      "id": "e2e796f5-0cb6-4b54-8494-e804453dedd6",
+      "name": "Search records in Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "anthropic/claude-haiku-4.5",
+          "mode": "list",
+          "cachedResultName": "anthropic/claude-haiku-4.5"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        240
+      ],
+      "id": "5eeed3f8-0a34-4bd9-8a4e-0359c1d82d7d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "dn6d8sLjYqvkNwjS",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        576,
+        -16
+      ],
+      "id": "97209658-f2b7-4678-bf6f-db6b4fb4e3fa",
+      "name": "When chat message received",
+      "webhookId": "551bce45-6f6b-4933-88dc-e2497086fb5d"
+    },
+    {
+      "parameters": {
+        "description": "Envoie le devis au client par email avec un PDF en piece jointe. À appeler UNIQUEMENT après que le client a confirmé vouloir recevoir le devis par email. Ce tool effectue automatiquement : (1) génération du PDF, (2) envoi de l'email Brevo avec PDF attaché, (3) mise à jour du statut dans Airtable à \"Envoye\" avec la date d'envoi. Remplace les deux anciens tools envoyer_devis_par_email + update_devis_status.",
+        "workflowId": {
+          "__rl": true,
+          "value": "zFKNkr6ri7JvYmzw",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zFKNkr6ri7JvYmzw",
+          "cachedResultName": "Execute Workflow Trigger"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nb_passagers": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nb_passagers', ``, 'number') }}",
+            "total_ht": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('total_ht', ``, 'number') }}",
+            "tva": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tva', ``, 'number') }}",
+            "total_ttc": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('total_ttc', ``, 'number') }}",
+            "nom_client": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nom_client', ``, 'string') }}",
+            "email_client": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('email_client', ``, 'string') }}",
+            "id_devis": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id_devis', ``, 'string') }}",
+            "id_airtable_devis": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id_airtable_devis', ``, 'string') }}",
+            "trajet": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('trajet', ``, 'string') }}",
+            "date_depart_lisible": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('date_depart_lisible', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nom_client",
+              "displayName": "nom_client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email_client",
+              "displayName": "email_client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_devis",
+              "displayName": "id_devis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_airtable_devis",
+              "displayName": "id_airtable_devis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "trajet",
+              "displayName": "trajet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "date_depart_lisible",
+              "displayName": "date_depart_lisible",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "nb_passagers",
+              "displayName": "nb_passagers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "total_ht",
+              "displayName": "total_ht",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "tva",
+              "displayName": "tva",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "total_ttc",
+              "displayName": "total_ttc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        320
+      ],
+      "id": "d405b19e-ca3d-4f9f-a1a3-bcb152b57129",
+      "name": "Call 'Execute Workflow Trigger'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calculer_devis": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_demande": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_devis": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records in Airtable": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Execute Workflow Trigger'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c11b79a8-5bf6-4f0d-89c8-e255a1e14692",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4459ad984a2e1dbeda2c1bb9bb928f3a8b8b801a2dfb33b003bd917cc65d4293"
+  },
+  "nodeGroups": [],
+  "id": "Cqah1lsqt6q21B21",
+  "tags": []
+}

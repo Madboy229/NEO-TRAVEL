@@ -1,0 +1,361 @@
+{
+  "name": "Execute Workflow Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "nom_client"
+            },
+            {
+              "name": "email_client"
+            },
+            {
+              "name": "id_devis"
+            },
+            {
+              "name": "id_airtable_devis"
+            },
+            {
+              "name": "trajet"
+            },
+            {
+              "name": "date_depart_lisible"
+            },
+            {
+              "name": "nb_passagers",
+              "type": "number"
+            },
+            {
+              "name": "total_ht",
+              "type": "number"
+            },
+            {
+              "name": "tva",
+              "type": "number"
+            },
+            {
+              "name": "total_ttc",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d1f1a7c6-17fc-49d8-b5a7-aa8d88e7f489",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"source\": `<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:Arial,sans-serif;color:#333;max-width:800px;margin:0 auto;padding:30px}.header{background:#1a5490;color:white;padding:24px;border-radius:8px 8px 0 0;text-align:center}.header h1{margin:0;font-size:28px}.content{border:1px solid #e0e0e0;padding:24px;border-radius:0 0 8px 8px}.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e0e0e0}.total{font-size:24px;font-weight:bold;color:#1a5490;margin-top:16px;background:#f0f4f8;padding:12px;border-radius:6px;text-align:center}</style></head><body><div class=\"header\"><h1>NEOTRAVEL</h1><p>Devis transport en autocar</p></div><div class=\"content\"><h2 style=\"color:#1a5490;margin-top:0\">Devis ${$('When Executed by Another Workflow').item.json.id_devis}</h2><p>Cher(e) ${$('When Executed by Another Workflow').item.json.nom_client},</p><p>Voici le détail de votre devis :</p><div class=\"row\"><span><strong>Trajet</strong></span><span>${$('When Executed by Another Workflow').item.json.trajet}</span></div><div class=\"row\"><span><strong>Date de départ</strong></span><span>${$('When Executed by Another Workflow').item.json.date_depart_lisible}</span></div><div class=\"row\"><span><strong>Passagers</strong></span><span>${$('When Executed by Another Workflow').item.json.nb_passagers} personnes</span></div><div class=\"row\"><span><strong>Total HT</strong></span><span>${$('When Executed by Another Workflow').item.json.total_ht} €</span></div><div class=\"row\"><span><strong>TVA (10%)</strong></span><span>${$('When Executed by Another Workflow').item.json.tva} €</span></div><div class=\"total\">Total TTC : ${$('When Executed by Another Workflow').item.json.total_ttc} €</div><p style=\"margin-top:24px;color:#666;font-size:13px\">Devis valable 30 jours à compter de l'envoi.</p><p style=\"color:#666;font-size:13px\">Pour confirmer votre réservation, contactez votre conseiller Neotravel.</p></div></body></html>`,\n  \"landscape\": false\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9d9d431d-a997-4f72-85aa-073fb1565b1a",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "sKp2sCnpGqx5LXMo",
+          "name": "PDFShift API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendHTML": true,
+        "subject": "={{ \"Votre devis Neotravel \" + $('When Executed by Another Workflow').item.json.id_devis }}",
+        "htmlContent": "={{ `<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\nbody { font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n.header { background: #1a5490; color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }\n.header h1 { margin: 0; font-size: 28px; }\n.content { background: #fff; padding: 24px; border: 1px solid #e0e0e0; }\n.devis-card { background: #f7f9fc; padding: 20px; border-radius: 8px; margin: 16px 0; }\n.row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0; }\n.total { font-size: 22px; font-weight: bold; color: #1a5490; margin-top: 16px; }\n.footer { background: #f0f4f8; padding: 16px; text-align: center; font-size: 13px; color: #666; border-radius: 0 0 8px 8px; }\n</style>\n</head>\n<body>\n<div class=\"header\">\n<h1>Neotravel</h1>\n<p style=\"margin: 8px 0 0 0;\">Votre devis transport en autocar</p>\n</div>\n<div class=\"content\">\n<p>Bonjour <strong>${$('When Executed by Another Workflow').item.json.nom_client}</strong>,</p>\n<p>Merci de votre intérêt pour Neotravel. Voici le devis pour votre trajet :</p>\n<div class=\"devis-card\">\n<div class=\"row\"><span>Référence</span><strong>${$('When Executed by Another Workflow').item.json.id_devis}</strong></div>\n<div class=\"row\"><span>Trajet</span><strong>${$('When Executed by Another Workflow').item.json.trajet}</strong></div>\n<div class=\"row\"><span>Date de départ</span><strong>${$('When Executed by Another Workflow').item.json.date_depart_lisible}</strong></div>\n<div class=\"row\"><span>Passagers</span><strong>${$('When Executed by Another Workflow').item.json.nb_passagers} personnes</strong></div>\n<div class=\"row\"><span>Total HT</span><strong>${$('When Executed by Another Workflow').item.json.total_ht} €</strong></div>\n<div class=\"row\"><span>TVA (10%)</span><strong>${$('When Executed by Another Workflow').item.json.tva} €</strong></div>\n<div class=\"total\">Total TTC : ${$('When Executed by Another Workflow').item.json.total_ttc} €</div>\n</div>\n<p>📎 Vous trouverez votre devis détaillé en pièce jointe (PDF).</p>\n<p>Ce devis est valable <strong>30 jours</strong>. Pour confirmer votre réservation ou poser une question, répondez simplement à cet email.</p>\n</div>\n<div class=\"footer\">\n<p><strong>Neotravel</strong> — Intermédiaire de transport en autocar</p>\n</div>\n</body>\n</html>` }}",
+        "sender": "kdarkaoui56@gmail.com",
+        "receipients": "={{ $('When Executed by Another Workflow').item.json.email_client }}",
+        "additionalFields": {
+          "emailAttachments": {
+            "attachment": {
+              "binaryPropertyName": "=data"
+            }
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.sendInBlue",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e66d23e5-d4e7-4d07-b182-cf4ca30b85cd",
+      "name": "Send a transactional email",
+      "credentials": {
+        "sendInBlueApi": {
+          "id": "eebWcmKb5pmknIZE",
+          "name": "Brevo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Statut_Engagement": "Envoye",
+            "Date_Envoi": "={{ $now.toISO() }}",
+            "id": "={{ $('When Executed by Another Workflow').item.json.id_airtable_devis }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID_Devis",
+              "displayName": "ID_Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Envoi",
+              "displayName": "Date_Envoi",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total_HT",
+              "displayName": "Total_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Total_TTC",
+              "displayName": "Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Statut_Engagement",
+              "displayName": "Statut_Engagement",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Genere",
+                  "value": "Genere"
+                },
+                {
+                  "name": "Envoye",
+                  "value": "Envoye"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fichier_PDF",
+              "displayName": "Fichier_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Compteur_Relances",
+              "displayName": "Compteur_Relances",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Compteur",
+              "displayName": "Compteur",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Email_Client",
+              "displayName": "Email_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "58a8581b-0512-4405-b17d-c31f33255b11",
+      "name": "Update record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send a transactional email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a transactional email": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4f6f71cf-1b57-4d00-b82d-d60f57bf702b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4459ad984a2e1dbeda2c1bb9bb928f3a8b8b801a2dfb33b003bd917cc65d4293"
+  },
+  "nodeGroups": [],
+  "id": "zFKNkr6ri7JvYmzw",
+  "tags": []
+}

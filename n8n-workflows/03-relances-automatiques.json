@@ -1,0 +1,852 @@
+{
+  "name": "Neotravel - Relances automatiques",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        144
+      ],
+      "id": "a7ca3486-d929-46f1-8303-16a59ed3ccba",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "sendHTML": true,
+        "subject": "=Rappel — Votre devis Neotravel {{ $json.fields.ID_Devis }}",
+        "htmlContent": "=={{ `<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\nbody { font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n.header { background: #1a5490; color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }\n.header h1 { margin: 0; font-size: 28px; }\n.content { background: #fff; padding: 24px; border: 1px solid #e0e0e0; }\n.devis-card { background: #f7f9fc; padding: 20px; border-radius: 8px; margin: 16px 0; }\n.row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0; }\n.total { font-size: 22px; font-weight: bold; color: #1a5490; margin-top: 16px; }\n.footer { background: #f0f4f8; padding: 16px; text-align: center; font-size: 13px; color: #666; border-radius: 0 0 8px 8px; }\n.cta { display: inline-block; background: #1a5490; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 16px; }\n</style>\n</head>\n<body>\n<div class=\"header\">\n<h1>Neotravel</h1>\n<p style=\"margin: 8px 0 0 0;\">Petite relance amicale</p>\n</div>\n<div class=\"content\">\n<p>Bonjour,</p>\n<p>Nous revenons vers vous au sujet du devis que nous vous avons transmis. Pour rappel :</p>\n<div class=\"devis-card\">\n<div class=\"row\"><span>Référence</span><strong>${$json.fields.ID_Devis}</strong></div>\n<div class=\"row\"><span>Total TTC</span><strong>${$json.fields.Total_TTC} €</strong></div>\n</div>\n<p>Votre devis est <strong>toujours valable</strong>. Pour confirmer votre réservation ou poser une question, répondez simplement à cet email — un conseiller Neotravel vous recontactera sous 24h.</p>\n<center><a href=\"mailto:kdarkaoui56@gmail.com\" class=\"cta\">Confirmer ma réservation</a></center>\n<p style=\"margin-top: 24px; color: #666; font-size: 13px;\">Si vous avez déjà réservé auprès d'un autre transporteur, vous pouvez ignorer ce message.</p>\n</div>\n<div class=\"footer\">\n<p><strong>Neotravel</strong> — Intermédiaire de transport en autocar</p>\n</div>\n</body>\n</html>` }}",
+        "sender": "kdarkaoui56@gmail.com",
+        "receipients": "={{ $json.fields.Email_Client }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.sendInBlue",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -128
+      ],
+      "id": "b7bbe659-c365-477e-9224-7127cb9dd78c",
+      "name": "Relance 1",
+      "credentials": {
+        "sendInBlueApi": {
+          "id": "eebWcmKb5pmknIZE",
+          "name": "Brevo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendHTML": true,
+        "subject": "=Dernière relance — Votre devis Neotravel {{ $json.fields.ID_Devis }}",
+        "htmlContent": "=={{ `<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\nbody { font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n.header { background: #1a5490; color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }\n.header h1 { margin: 0; font-size: 28px; }\n.content { background: #fff; padding: 24px; border: 1px solid #e0e0e0; }\n.devis-card { background: #f7f9fc; padding: 20px; border-radius: 8px; margin: 16px 0; }\n.row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0; }\n.total { font-size: 22px; font-weight: bold; color: #1a5490; margin-top: 16px; }\n.footer { background: #f0f4f8; padding: 16px; text-align: center; font-size: 13px; color: #666; border-radius: 0 0 8px 8px; }\n.cta { display: inline-block; background: #1a5490; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 16px; }\n</style>\n</head>\n<body>\n<div class=\"header\">\n<h1>Neotravel</h1>\n<p style=\"margin: 8px 0 0 0;\">Dernière relance — votre devis vous attend</p>\n</div>\n<div class=\"content\">\n<p>Bonjour,</p>\n<p>C'est notre dernière relance concernant le devis que nous vous avons transmis. Au-delà, le devis sera considéré comme expiré. </p>\n<div class=\"devis-card\">\n<div class=\"row\"><span>Référence</span><strong>${$json.fields.ID_Devis}</strong></div>\n<div class=\"row\"><span>Total TTC</span><strong>${$json.fields.Total_TTC} €</strong></div>\n</div>\n<p>Votre devis est <strong>toujours valable</strong>. Pour confirmer votre réservation ou poser une question, répondez simplement à cet email — un conseiller Neotravel vous recontactera sous 24h.</p>\n<center><a href=\"mailto:kdarkaoui56@gmail.com\" class=\"cta\">Confirmer ma réservation</a></center>\n<p style=\"margin-top: 24px; color: #666; font-size: 13px;\">Si vous avez déjà réservé auprès d'un autre transporteur, vous pouvez ignorer ce message.</p>\n</div>\n<div class=\"footer\">\n<p><strong>Neotravel</strong> — Intermédiaire de transport en autocar</p>\n</div>\n</body>\n</html>` }}",
+        "sender": "kdarkaoui56@gmail.com",
+        "receipients": "={{ $json.fields.Email_Client }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.sendInBlue",
+      "typeVersion": 1,
+      "position": [
+        496,
+        144
+      ],
+      "id": "7eabe6e1-2ad4-4fca-8cc0-403ebaea367b",
+      "name": "Relance 2",
+      "credentials": {
+        "sendInBlueApi": {
+          "id": "eebWcmKb5pmknIZE",
+          "name": "Brevo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Statut_Engagement": "Relance_2",
+            "id": "={{ $('Search records 2').item.json.id }}",
+            "Compteur_Relances": 2
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID_Devis",
+              "displayName": "ID_Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Envoi",
+              "displayName": "Date_Envoi",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total_HT",
+              "displayName": "Total_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Total_TTC",
+              "displayName": "Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Statut_Engagement",
+              "displayName": "Statut_Engagement",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Genere",
+                  "value": "Genere"
+                },
+                {
+                  "name": "Envoye",
+                  "value": "Envoye"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fichier_PDF",
+              "displayName": "Fichier_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Compteur_Relances",
+              "displayName": "Compteur_Relances",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Compteur",
+              "displayName": "Compteur",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Email_Client",
+              "displayName": "Email_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        144
+      ],
+      "id": "c8cd080e-1483-494b-b226-d206371d06d9",
+      "name": "Update record 2",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Statut_Engagement": "Cloture",
+            "id": "={{ $('Search records 3').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID_Devis",
+              "displayName": "ID_Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Envoi",
+              "displayName": "Date_Envoi",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total_HT",
+              "displayName": "Total_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Total_TTC",
+              "displayName": "Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Statut_Engagement",
+              "displayName": "Statut_Engagement",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Genere",
+                  "value": "Genere"
+                },
+                {
+                  "name": "Envoye",
+                  "value": "Envoye"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fichier_PDF",
+              "displayName": "Fichier_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Compteur_Relances",
+              "displayName": "Compteur_Relances",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Compteur",
+              "displayName": "Compteur",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        416
+      ],
+      "id": "9a580279-6ef9-4db7-9ee4-0f9a7a6649a7",
+      "name": "Update record 3",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "filterByFormula": "AND({Statut_Engagement} = 'Envoye', DATETIME_DIFF(NOW(), {Date_Envoi}, 'minutes') >= 2, NOT({Email_Client} = ''))",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        -128
+      ],
+      "id": "ed00109f-1e3f-4549-848d-37d32a65a855",
+      "name": "Search records 1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Compteur_Relances": 1,
+            "Statut_Engagement": "Relance_1",
+            "id": "={{ $('Search records 1').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID_Devis",
+              "displayName": "ID_Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Envoi",
+              "displayName": "Date_Envoi",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total_HT",
+              "displayName": "Total_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Total_TTC",
+              "displayName": "Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Statut_Engagement",
+              "displayName": "Statut_Engagement",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Genere",
+                  "value": "Genere"
+                },
+                {
+                  "name": "Envoye",
+                  "value": "Envoye"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fichier_PDF",
+              "displayName": "Fichier_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Compteur_Relances",
+              "displayName": "Compteur_Relances",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Compteur",
+              "displayName": "Compteur",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        -128
+      ],
+      "id": "28dbde10-a081-48aa-aa28-cd6594775f63",
+      "name": "Update record 1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "filterByFormula": "AND({Statut_Engagement} = 'Relance_1', DATETIME_DIFF(NOW(), {Date_Envoi}, 'minutes') >= 5, NOT({Email_Client} = ''))",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        144
+      ],
+      "id": "99ea51aa-9786-4222-8633-2aed24123107",
+      "name": "Search records 2",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app0yEufxMZiZeIlQ",
+          "mode": "list",
+          "cachedResultName": "Neotravel-CRM",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblccpXMXnGavyXmr",
+          "mode": "list",
+          "cachedResultName": "Devis",
+          "cachedResultUrl": "https://airtable.com/app0yEufxMZiZeIlQ/tblccpXMXnGavyXmr"
+        },
+        "filterByFormula": "AND({Statut_Engagement} = 'Relance_2', DATETIME_DIFF(NOW(), {Date_Envoi}, 'minutes') >= 10)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        416
+      ],
+      "id": "1055164e-f034-44cc-867d-974016e7b7d7",
+      "name": "Search records 3",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "WNrUUyNG18lHxAdz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search records 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search records 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search records 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relance 1": {
+      "main": [
+        [
+          {
+            "node": "Update record 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relance 2": {
+      "main": [
+        [
+          {
+            "node": "Update record 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records 1": {
+      "main": [
+        [
+          {
+            "node": "Relance 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record 1": {
+      "main": [
+        []
+      ]
+    },
+    "Search records 2": {
+      "main": [
+        [
+          {
+            "node": "Relance 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records 3": {
+      "main": [
+        [
+          {
+            "node": "Update record 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "450b4d5d-c690-442d-9fc8-4ff23c6facfc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4459ad984a2e1dbeda2c1bb9bb928f3a8b8b801a2dfb33b003bd917cc65d4293"
+  },
+  "nodeGroups": [],
+  "id": "Z54fXwJdeL9X3sEY",
+  "tags": []
+}
