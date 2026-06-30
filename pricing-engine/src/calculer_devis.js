@@ -1,28 +1,5 @@
-/**
- * Moteur de tarification deterministe Neotravel.
- *
- * Regle d'or : le LLM decide, le code calcule. Cette fonction ne fait JAMAIS
- * appel a un modele de langage. Elle applique strictement les matrices
- * documentees dans matrices.js.
- *
- * Contrat d'interface (cf. dossier de cadrage §5.2) :
- *   {
- *     "nb_passagers": 34,
- *     "date_depart":  "2026-07-15T08:00:00Z",
- *     "date_demande": "2026-06-23T12:00:00Z",
- *     "distance_km": 150,
- *     "options": ["nuit_chauffeur", "peages_inclus"],
- *     "nb_nuits": 1,                // optionnel — defaut 0
- *     "nb_jours_guide": 0,          // optionnel — defaut 0
- *     "peages_forfait": 0           // optionnel — defaut 0
- *   }
- *
- * Retour :
- *   {
- *     total_HT, tva, total_TTC,
- *     details: { prix_base, coefficients_appliques, options_appliquees, marge_commerciale }
- *   }
- */
+// Moteur de tarification deterministe Neotravel.
+// Regle d'or : le LLM decide, le code calcule.
 
 import {
   COEFFICIENTS_SAISON,
@@ -37,7 +14,7 @@ import {
 } from "./matrices.js";
 
 function coefficientSaison(dateDepart) {
-  const mois = dateDepart.getUTCMonth() + 1; // 1..12
+  const mois = dateDepart.getUTCMonth() + 1;
   for (const [nom, regle] of Object.entries(COEFFICIENTS_SAISON)) {
     if (regle.mois.includes(mois)) {
       return { niveau: nom, coefficient: regle.coefficient };
@@ -50,7 +27,7 @@ function coefficientDelai(dateDemande, dateDepart) {
   const msParJour = 1000 * 60 * 60 * 24;
   const ecartJours = Math.floor((dateDepart - dateDemande) / msParJour);
   if (ecartJours < 0) {
-    throw new Error("date_depart anterieure a date_demande — incoherent");
+    throw new Error("date_depart anterieure a date_demande");
   }
   for (const [code, regle] of Object.entries(COEFFICIENTS_DELAI)) {
     if (ecartJours >= regle.min_jours && ecartJours < regle.max_jours) {
@@ -69,9 +46,7 @@ function coefficientCapacite(nbPassagers) {
       return { tranche: `${tranche.min}-${tranche.max}`, coefficient: tranche.coefficient };
     }
   }
-  throw new Error(
-    `nb_passagers ${nbPassagers} hors capacite maximale (85 passagers)`
-  );
+  throw new Error(`nb_passagers ${nbPassagers} hors capacite maximale (85 passagers)`);
 }
 
 function arrondi2(n) {
@@ -79,7 +54,6 @@ function arrondi2(n) {
 }
 
 export function calculerDevis(payload) {
-  // 1. Validation des entrees critiques
   if (!payload || typeof payload !== "object") {
     throw new Error("payload manquant");
   }
@@ -99,10 +73,8 @@ export function calculerDevis(payload) {
     throw new Error("date_depart ou date_demande invalide (format ISO 8601 attendu)");
   }
 
-  // 2. Prix de base
   const prixBase = PRIX_PAR_KM * payload.distance_km;
 
-  // 3. Coefficients (multiplicatifs)
   const cSaison = coefficientSaison(dateDepart);
   const cDelai = coefficientDelai(dateDemande, dateDepart);
   const cCapacite = coefficientCapacite(payload.nb_passagers);
@@ -113,7 +85,6 @@ export function calculerDevis(payload) {
     (1 + cDelai.coefficient) *
     (1 + cCapacite.coefficient);
 
-  // 4. Options / supplements (additifs)
   const options = Array.isArray(payload.options) ? payload.options : [];
   const optionsAppliquees = [];
   let totalOptions = 0;
@@ -131,7 +102,6 @@ export function calculerDevis(payload) {
     totalOptions += montant;
   }
   if (options.includes("peages_inclus")) {
-    // Si pas de forfait explicite, calcul auto : distance * PEAGES_PAR_KM
     const forfait = payload.peages_forfait ?? (payload.distance_km * PEAGES_PAR_KM);
     const calculAuto = payload.peages_forfait === undefined;
     optionsAppliquees.push({
@@ -142,15 +112,12 @@ export function calculerDevis(payload) {
     totalOptions += forfait;
   }
 
-  // 5. Marge commerciale appliquee au devis avant TVA
   const sousTotalHT = prixApresCoefs + totalOptions;
   const totalAvantMin = sousTotalHT * (1 + MARGE_COMMERCIALE);
 
-  // 6. Prix minimum : un devis ne peut pas etre inferieur au cout de mobilisation
   const prixMinimumApplique = totalAvantMin < PRIX_MINIMUM;
   const totalHT = prixMinimumApplique ? PRIX_MINIMUM : totalAvantMin;
 
-  // 7. TVA et TTC
   const tva = totalHT * TVA_RATE;
   const totalTTC = totalHT + tva;
 

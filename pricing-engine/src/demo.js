@@ -1,9 +1,5 @@
-/**
- * Demo CLI : execute calculer_devis() sur le payload de reference du dossier
- * de cadrage (§5.2) et affiche le resultat formate.
- *
- * Usage : npm run demo
- */
+// Demo CLI du moteur de tarification. Usage : npm run demo
+
 import { calculerDevis } from "./calculer_devis.js";
 
 const payloadExemple = {

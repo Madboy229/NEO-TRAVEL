@@ -14,7 +14,7 @@ automatisés, séquences emailing et dashboard de pilotage.
 | Orchestrateur / Agent IA | n8n (Cloud) |
 | LLM | OpenAI GPT-4o-mini via Vercel AI Gateway (clé école `vck_*`) |
 | Base CRM | Airtable (4 tables) |
-| Envoi emails | Resend |
+| Envoi emails | Brevo (300/jour gratuit, envoi libre) |
 | Moteur de tarification | Node.js pur (code déterministe) |
 
 ## Règle d'or

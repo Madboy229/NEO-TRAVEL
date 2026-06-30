@@ -1,0 +1,54 @@
+<!--
+  Template HTML a coller dans le champ "HTML Content" des noeuds Brevo
+  Relance_1 et Relance_2 du workflow "Neotravel - Relances automatiques".
+
+  Variables n8n disponibles ($json correspond a la ligne Airtable Devis) :
+    {{ $json.fields.ID_Devis }}
+    {{ $json.fields.Total_TTC }}
+    {{ $json.fields.Email_Client }}
+
+  Adapter le titre / le ton selon Relance_1 ou Relance_2.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body { font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+.header { background: #1a5490; color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }
+.header h1 { margin: 0; font-size: 26px; }
+.content { background: #fff; padding: 24px; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px; }
+.devis-info { background: #f7f9fc; padding: 16px; border-radius: 8px; margin: 16px 0; }
+.cta { display: inline-block; background: #1a5490; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 12px; }
+.footer { text-align: center; font-size: 12px; color: #888; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Neotravel</h1>
+<p style="margin: 8px 0 0 0;">Petite relance amicale</p>
+</div>
+<div class="content">
+<p>Bonjour,</p>
+<p>Nous reviennons vers vous suite a votre demande de devis transport en autocar.</p>
+
+<div class="devis-info">
+<strong>Reference :</strong> {{ $json.fields.ID_Devis }}<br>
+<strong>Total TTC :</strong> {{ $json.fields.Total_TTC }} EUR
+</div>
+
+<p>Votre devis est toujours valable. Pour confirmer votre reservation ou poser une question, repondez simplement a cet email — un conseiller Neotravel vous recontactera sous 24h.</p>
+
+<center>
+<a href="mailto:kdarkaoui56@gmail.com" class="cta">Confirmer ma reservation</a>
+</center>
+
+<p style="margin-top: 24px;">Si vous avez deja reserve aupres d'un autre transporteur, ignorez ce message.</p>
+<p>L'equipe Neotravel</p>
+</div>
+<div class="footer">
+Vous recevez ce message car vous avez demande un devis sur le site Neotravel. Aucune autre relance ne vous sera envoyee.
+</div>
+</body>
+</html>

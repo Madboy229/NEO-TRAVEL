@@ -1,14 +1,5 @@
-/**
- * Tests unitaires du moteur calculer_devis().
- *
- * Couvre :
- *  - Cas type du dossier de cadrage (golden set)
- *  - Chaque niveau de saisonnalite (basse, moyenne, haute, tres haute)
- *  - Chaque tranche de delai (prioritaire, urgent, normal, 3 mois+)
- *  - Chaque tranche de capacite (<=19, 20-53, 54-63, 64-67, 68-85)
- *  - Toutes les options (guide, nuit_chauffeur, peages)
- *  - Cas limites et erreurs (capacite > 85, distance <= 0, dates incoherentes...)
- */
+// Tests unitaires du moteur calculer_devis().
+
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { calculerDevis } from "../src/calculer_devis.js";
